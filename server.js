@@ -17,11 +17,13 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Database Connection ───────────────────────
+require("dotenv").config();
+
 const db = mysql.createConnection({
-  host:     'leafgym-db.clquq84mqr8o.eu-north-1.rds.amazonaws.com',
-  user:     'admin',      
-  password: 'Kwg7iPfiNbV7PN5',         
-  database: 'resume_db'
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
 });
 
 db.connect((err) => {
