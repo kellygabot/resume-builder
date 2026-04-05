@@ -4,7 +4,7 @@ function switchTab(tab, e) {
     .querySelectorAll(".tab-panel")
     .forEach((p) => p.classList.remove("active"));
   document
-    .querySelectorAll(".tab-btn")
+    .querySelectorAll(".nav-btn")
     .forEach((b) => b.classList.remove("active"));
   document.getElementById("tab-" + tab).classList.add("active");
   e.currentTarget.classList.add("active");
@@ -56,8 +56,6 @@ async function saveResume() {
     }
     resume[id] = val;
   }
-
-  // Basic email validation
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resume.email)) {
     showToast("Please enter a valid email address.", "error");
     return;
@@ -74,15 +72,14 @@ async function saveResume() {
       body: JSON.stringify(resume),
     });
     const data = await res.json();
-
     if (data.success) {
-      showToast("✅ Resume saved! (ID: " + data.id + ")");
+      showToast("Resume saved — ID: " + data.id);
       clearForm();
     } else {
       showToast(data.message || "Something went wrong.", "error");
     }
-  } catch (err) {
-    showToast("❌ Cannot reach server. Is Node.js running?", "error");
+  } catch {
+    showToast("Cannot reach server.", "error");
   } finally {
     btn.innerHTML = "Save Resume";
     btn.disabled = false;
@@ -94,7 +91,7 @@ async function loadResumes() {
   const list = document.getElementById("resumeList");
   const count = document.getElementById("resumeCount");
   list.innerHTML =
-    '<div style="text-align:center;padding:40px;color:var(--muted)">Loading...</div>';
+    '<div style="text-align:center;padding:48px;color:var(--text-3)">Loading…</div>';
 
   try {
     const res = await fetch("/resumes");
@@ -103,14 +100,18 @@ async function loadResumes() {
     if (!data.success || !data.data.length) {
       count.textContent = "0 resumes saved";
       list.innerHTML = `
-          <div class="empty-state">
-            <div class="icon">📄</div>
-            <p>No resumes saved yet.<br>Go to <strong>Build Resume</strong> to add one.</p>
-          </div>`;
+        <div class="empty-state">
+          <div class="icon">📄</div>
+          <p>No resumes yet.<br>Go to <strong>Build</strong> to add one.</p>
+        </div>`;
       return;
     }
 
-    count.textContent = data.data.length + " resume(s) saved";
+    count.textContent =
+      data.data.length +
+      " resume" +
+      (data.data.length === 1 ? "" : "s") +
+      " saved";
     list.innerHTML = "";
 
     const container = document.createElement("div");
@@ -126,35 +127,36 @@ async function loadResumes() {
       const card = document.createElement("div");
       card.className = "resume-card";
       card.innerHTML = `
-          <div class="resume-card-header" onclick="toggleCard(this)">
-            <div>
-              <h3>${esc(item.full_name)}</h3>
-              <div class="resume-meta">${esc(item.email)} · ${esc(item.phone)} · Saved ${date}</div>
-            </div>
-            <div class="card-actions">
-              <button class="btn-icon" title="Delete" onclick="deleteResume(${item.id}, event)">🗑 Delete</button>
-              <span class="chevron">▼</span>
-            </div>
+        <div class="resume-card-header" onclick="toggleCard(this)">
+          <div>
+            <h3>${esc(item.full_name)}</h3>
+            <div class="resume-meta">${esc(item.email)} · ${esc(item.phone)} · ${date}</div>
           </div>
-          <div class="resume-card-body">
+          <div class="card-actions">
+            <button class="btn-icon" onclick="deleteResume(${item.id}, event)">Delete</button>
+            <span class="chevron">▼</span>
+          </div>
+        </div>
+        <div class="resume-card-body">
+          <div class="resume-fields">
             <div class="resume-field"><strong>Address</strong>${esc(item.address)}</div>
-            <div class="resume-field"><strong>Career Objective</strong>${esc(item.objective)}</div>
-            <div class="resume-field"><strong>Education</strong>${esc(item.education)}</div>
             <div class="resume-field"><strong>Skills</strong>${esc(item.skills)}</div>
-            <div class="resume-field"><strong>Projects / Experience</strong>${esc(item.experience)}</div>
-          </div>`;
-
+            <div class="resume-field wide"><strong>Career Objective</strong>${esc(item.objective)}</div>
+            <div class="resume-field wide"><strong>Education</strong>${esc(item.education)}</div>
+            <div class="resume-field wide"><strong>Projects / Experience</strong>${esc(item.experience)}</div>
+          </div>
+        </div>`;
       container.appendChild(card);
     });
 
     list.appendChild(container);
-  } catch (err) {
+  } catch {
     count.textContent = "Error";
-    list.innerHTML = `<div class="empty-state"><p>❌ Cannot reach server.<br>Make sure Node.js is running.</p></div>`;
+    list.innerHTML = `<div class="empty-state"><p>Cannot reach server.<br>Make sure Node.js is running.</p></div>`;
   }
 }
 
-// ── Toggle card expand ──────────────────────────
+// ── Toggle card ─────────────────────────────────
 function toggleCard(header) {
   header.closest(".resume-card").classList.toggle("open");
 }
@@ -163,22 +165,19 @@ function toggleCard(header) {
 async function deleteResume(id, e) {
   e.stopPropagation();
   if (!confirm("Delete this resume? This cannot be undone.")) return;
-
   try {
     const res = await fetch("/resumes/" + id, { method: "DELETE" });
     const data = await res.json();
     if (data.success) {
       showToast("Resume deleted.");
       loadResumes();
-    } else {
-      showToast("Delete failed.", "error");
-    }
+    } else showToast("Delete failed.", "error");
   } catch {
-    showToast("❌ Server error.", "error");
+    showToast("Server error.", "error");
   }
 }
 
-// ── Escape HTML helper ──────────────────────────
+// ── Escape HTML ─────────────────────────────────
 function esc(str) {
   return String(str)
     .replace(/&/g, "&amp;")
